@@ -1,0 +1,281 @@
+#!/bin/bash
+
+user=$(whoami)
+
+# Customize your fetch here!
+user_options() {
+  ####################
+  # Neofetch Display #
+  ####################
+
+  # Include the info that you want to add, make sure to add quotation marks around the value to make sure the value gets properly added the the array
+  # Options:
+  #     OS    cpu     ram_num        ram            simplified_ram    resolution    DE 
+  #     free_storage  used_storage   total_storage  free_storage   percent_storage  system_runtime
+  info_stuff=(
+    "$user_hostname" ""
+    "" "$spacer" #Spacer is in the right area so that it becomes white instead of cyan
+    "OS: " "$OS"
+    "CPU: " "$cpu"
+    "Ram: " "$simplified_ram$ram"
+    "DE: " "$DE"
+    "Terminal: " "$TERMINAL"
+    "Resolution: " "$resolution"
+    "Storage Space: " "$(($used_storage / 1000000))/$(($total_storage / 1000000)) GB$percent_storage"
+    "Usable Storage: " "$(($free_storage / 1000000)) GB"
+    "Uptime: " "$system_runtime"
+  )
+
+  #####################
+  # Image restriction #
+  #####################
+  # Choose what images in your ~/Pictures/neofetch_images directory to not use (it won't try files that aren't images anyways)
+
+  naughty_images=(
+    # E.G.: (will prevent ~/Pictures/neofetch_images/picture_of_your_mom.png from being selected)
+    "new_bunny.gif"
+
+  )
+}
+
+# Where to add font formatting, system information variables, and icons (if you want)
+variable_declaration() {
+    # Font customization
+    Fontreset='\033[0m'
+    Bold='\033[1m'
+
+    Red='\033[0;31m'
+    Lred='\033[0m\e[38;5;196m'
+    Lgreen='\033[0m\e[92m'
+    Orange='\033[0m\e[38;5;208m'
+    Yellow='\033[0m\e[38;5;226m'
+    Lblue='\033[0m\e[34m'
+    Purple='\033[0m\e[38;5;92m'
+    Pink='\033[0m\e[38;5;198m'
+    Cyan='\033[0m\e[36m'
+
+    DefFont=$Cyan$Bold
+
+    # Computer Information
+    user_hostname=$(echo $DefFont$(whoami)$Fontreset@$DefFont$(hostnamectl hostname)$Fontreset)
+    clean_user_hostname=$(echo -e "$(whoami)@$(hostnamectl hostname)")
+    spacer=$(for i in $(seq 0 $((${#clean_user_hostname}-1))); do printf '%s' "-"; done)
+
+    OS=$(grep -E "^PRETTY_NAME=" /etc/os-release | sed "s/PRETTY_NAME=//")
+    cpu=$(lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g' | sed -r 's/ with Radeon Graphics//')
+    ram=$(echo -e " ($(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //'))")
+    ram_num=$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //' | sed -r 's/ kB//')
+    simplified_ram=$(echo ""$(($ram_num / 1000000))" GB")
+    resolution=$(xrandr | sed 's/^.*current //' | sed 's/, maximum 32767 x 32767//' | head -n 1)
+    storage_dev=$(df -h | sort -k 2 -r -h | head -1 | awk '{print $1}')
+    used_storage=$(df / | grep -h 2 | awk '{print $3}')
+    total_storage=$(df / | grep -h 2 | awk '{print $2}')
+    free_storage=$(($total_storage - $used_storage))
+    perc=$(echo "scale=3; $used_storage / $total_storage * 100" | bc) #temp var
+    percent_storage=$(echo " (${perc:0:4}%)")
+    DE=$(echo $XDG_CURRENT_DESKTOP | sed "s/^.*://")
+    system_runtime=$(uptime -p | sed 's/up //')
+
+    # ICONS (You will need to have icons-in-terminal installed: https://github.com/sebastiencs/icons-in-terminal)
+    source ~/.local/share/icons-in-terminal/icons_bash.sh
+    ICON_bluetooth=$(echo -e $md_bluetooth_searching)
+    ICON_ubuntu=$(echo -e $linux_ubuntu)
+    ICON_webpage=$(echo -e $linea_basic_webpage)
+    ICON_settings=$(echo -e $dev_aptana)
+    ICON_clock=$(echo -e $weather_time_3)
+    ICON_terminal=$(echo -e $file_terminal)
+    ICON_clock2=$(echo -e $md_watch_later)
+    ICON_monitor=$(echo -e $md_personal_video)
+    ICON_graph=$(echo -e $md_broken_image)
+    ICON_chip=$(echo -e $md_developer_board)
+    ICON_folderplus=$(echo -e $md_create_new_folder)
+    ICON_folder=$(echo -e $md_folder)
+    ICON_folderempty=$(echo -e $md_folder_open)
+    ICON_chip2=$(echo -e $fa_microchip)
+    ICON_server=$(echo -e $fa_server)
+    ICON_gradcap=$(echo -e $fa_graduation_cap)
+    ICON_github=$(echo -e $fa_github)
+}
+
+# I realize now that this isn't very necessary, because I thought that the terminal size would matter, but that's only if you care enough to format the image in real time, which I don't
+get_window_size() {
+    if [[ "$image_backend" == "tycat" ]]; then
+        printf '%b' '\e}qs\000'
+
+    elif [[ -z $VTE_VERSION ]]; then
+        case ${TMUX:-null} in
+            "null") printf '%b' '\e[14t' ;;
+            *)      printf '%b' '\ePtmux;\e\e[14t\e\\ ' ;;
+        esac
+    fi
+
+    case $bash_version in
+        4|5) IFS=';t' read -d t -t 0.05 -sra term_size ;;
+        *)   IFS=';t' read -d t -t 1 -sra term_size ;;
+    esac
+    unset IFS
+
+    # Split the string into height/width.
+    if [[ "$image_backend" == "tycat" ]]; then
+        term_width="$((term_size[2] * term_size[0]))"
+        term_height="$((term_size[3] * term_size[1]))"
+
+    else
+        term_height="${term_size[1]}"
+        term_width="${term_size[2]}"
+    fi
+
+    # Get terminal width/height.
+    if (( "${term_width:-0}" < 50 )) && [[ "$DISPLAY" && $os != "Mac OS X" && $os != "macOS" ]]; then
+        if type -p xdotool &>/dev/null; then
+            IFS=$'\n' read -d "" -ra win \
+                <<< "$(xdotool getactivewindow getwindowgeometry --shell %1)"
+            term_width="${win[3]/WIDTH=}"
+            term_height="${win[4]/HEIGHT=}"
+
+        elif type -p xwininfo &>/dev/null; then
+            # Get the focused window's ID.
+            if type -p xdo &>/dev/null; then
+                current_window="$(xdo id)"
+
+            elif type -p xprop &>/dev/null; then
+                current_window="$(xprop -root _NET_ACTIVE_WINDOW)"
+                current_window="${current_window##* }"
+
+            elif type -p xdpyinfo &>/dev/null; then
+                current_window="$(xdpyinfo | grep -F "focus:")"
+                current_window="${current_window/*window }"
+                current_window="${current_window/,*}"
+            fi
+
+            # If the ID was found get the window size.
+            if [[ "$current_window" ]]; then
+                term_size=("$(xwininfo -id "$current_window")")
+                term_width="${term_size[0]#*Width: }"
+                term_width="${term_width/$'\n'*}"
+                term_height="${term_size[0]/*Height: }"
+                term_height="${term_height/$'\n'*}"
+            fi
+        fi
+    fi
+
+    term_width="${term_width:-0}"
+}
+
+
+variable_declaration
+# get_window_size
+user_options
+
+# declare -i big_image
+
+while true; do
+  bad_image=0
+  image_file=$(find /home/$user/Pictures/pifetch_images -type f | shuf -n 1)
+  if [[ $1 != "" ]]; then
+    image_file=$1
+  fi
+  for IMAGE in ${naughty_images[@]}; do
+    if [[ "/home/$user/Pictures/pifetch_images/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
+  done
+  if [[ $bad_image == 1 ]]; then
+    continue
+  fi
+  image_file_extension="${image_file##*.}"
+  echo $image_file
+  case "$image_file_extension" in
+      gif)
+        image_height=$(file $image_file | awk '{print $7}')
+        image_width=$(file $image_file | awk '{print $9}')
+        if [[ $image_height -gt 400 ]]; then
+          echo "Image is too big for terminal"
+          big_image=1
+        else
+          break
+        fi
+        ;;
+      png)
+        image_height=$(file $image_file | awk '{print $7}')
+        image_width=$(file $image_file | awk '{print $5}')
+        image_height=${image_height:0:-1}
+        # if [[ $image_height -lt 400 ]]; then
+        #   big_image=1
+        # fi
+        break
+        ;;
+      jpeg | jpg)
+        image_dimensions=$(file $image_file | awk '{print $18}')
+        if [[ $image_dimensions == "" ]]; then
+          image_dimensions=$(file $image_file | awk '{print $15}')
+        fi
+        image_height=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $1}')
+        image_width=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $2}')
+        image_width=${image_width:0:-1}
+        # if [[ $image_height -lt 400 ]]; then
+        #   big_image=1
+        # fi
+        break
+        ;;
+  esac
+done
+
+if [[ $1 != "" ]]; then
+  echo -e "Piped image: $1"
+  image_file="$1"
+fi
+# echo -e "Term Height: $term_height"
+# echo -e "Term Width: $term_width"
+
+# echo $image_file_extension
+
+
+echo -e "Height: $image_height"
+echo -e "Width: $image_width"
+
+if [[ $image_height -gt 400 ]] && [[ $image_file_extension == "gif" ]]; then
+  echo "Image size is too big for terminal"
+  exit;
+fi
+
+
+info_echo_amount=$((image_width/9))
+if [[ $info_echo_amount -gt 50 ]]; then
+  info_echo_amount=50
+fi
+echo_amount=$((image_height/20))
+if [[ $echo_amount -gt 20 ]]; then
+  echo_amount=20
+fi
+if [[ $image_height != $image_width ]]; then # If the image is very large, it may be necessary to calculate the scale of the image to find out how much to echo the image from the user input
+  scaley=$(echo "scale=4; $image_height / $image_width" | bc)
+  echo_amount=$(echo "scale=0; $echo_amount * $scaley / 1" | bc)
+  echo_amount=$((echo_amount+1))
+  # echo "Math: $echo_amount"
+fi
+echo -e "echo amount: $echo_amount"
+echo -e "info echo amount: $info_echo_amount"
+
+
+
+# echo $image_file
+# echo $1
+if [[ $image_file_extension == "gif" ]]; then
+  echo "loading gif"
+fi
+
+# clear
+kitty +kitten icat --align left --place "50x50@-100x-100" $image_file
+for info in $(seq 0 2 ${#info_stuff[@]}); do
+  for i in $(seq 0 $info_echo_amount); do
+    printf "%s " ""
+  done
+  sleep 0.02
+  # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this program
+  echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
+done
+
+echo_reduction=$((${#info_stuff[@]}/2))
+
+echo_amount=$((echo_amount-echo_reduction))
+
+for i in $(seq 0 $echo_amount); do echo; done
