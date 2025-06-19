@@ -37,8 +37,7 @@ user_options() {
 
   naughty_images=(
     # E.G.: (will prevent ~/Pictures/neofetch_images/picture_of_your_mom.png from being selected)
-    "new_bunny.gif"
-
+    "picture_of_your_mom.png"
   )
 }
 
