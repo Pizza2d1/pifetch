@@ -266,7 +266,7 @@ if [[ $image_file_extension == "gif" ]]; then
   echo "loading gif"
 fi
 
-# clear
+clear
 kitty +kitten icat --align left --place "50x50@-100x-100" $image_file
 for info in $(seq 0 2 ${#info_stuff[@]}); do
   for i in $(seq 0 $info_echo_amount); do
