@@ -4,6 +4,10 @@ user=$(whoami)
 
 # Customize your fetch here!
 user_options() {
+
+  # Default location of pifetch images
+  image_dir="/home/$user/Pictures/pifetch_images"
+
   ####################
   # Neofetch Display #
   ####################
@@ -171,12 +175,12 @@ user_options
 
 while true; do
   bad_image=0
-  image_file=$(find /home/$user/Pictures/pifetch_images -type f | shuf -n 1)
+  image_file=$(find $image_dir -type f | shuf -n 1)
   if [[ $1 != "" ]]; then
     image_file=$1
   fi
   for IMAGE in ${naughty_images[@]}; do
-    if [[ "/home/$user/Pictures/pifetch_images/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
+    if [[ "$image_dir/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
   done
   if [[ $bad_image == 1 ]]; then
     continue
