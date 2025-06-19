@@ -39,6 +39,12 @@ user_options() {
     # E.G.: (will prevent ~/Pictures/neofetch_images/picture_of_your_mom.png from being selected)
     "picture_of_your_mom.png"
   )
+  if [[ $user == "pizza2d1" ]]; then
+    naughty_images+=(
+      "new_bunny.gif"
+      "output.gif"
+      "catgirl.gif"
+      )
 }
 
 # Where to add font formatting, system information variables, and icons (if you want)
