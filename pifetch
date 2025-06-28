@@ -1,6 +1,7 @@
 #!/bin/bash
 
 user=$(whoami)
+exhibition_bool=0
 
 # Customize your fetch here!
 user_options() {
@@ -190,9 +191,11 @@ find_valid_image() {
     # echo -e "Piped image: $selected_image"
     image_file="$selected_image"
   fi
-  for IMAGE in ${naughty_images[@]}; do
-    if [[ "$image_dir/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
-  done
+  if [ $exhibition_bool == 0 ]; then
+    for IMAGE in ${naughty_images[@]}; do
+      if [[ "$image_dir/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
+    done
+  fi
   if [[ $bad_image == 1 ]]; then
     find_valid_image
   fi
@@ -236,11 +239,6 @@ if [ -f "$1" ]; then
   selected_image="$1"
 fi
 
-variable_declaration
-# get_window_size
-user_options
-find_valid_image
-
 # I need to add more of these later on
 case "$1" in 
   --help)
@@ -248,11 +246,23 @@ case "$1" in
     Pifetch options:
 
     --help                      Displays this help option
+    -e                          Will remove the blacklist and include all images in the selected image directory
     image.[png|gif|jpg|jpeg]    Will use pifetch for the specific image that you pick (usage: \"pifetch /path/to/image\")
+
+    If you would like to modify or change the configuration of this, modify your changes in the pifetch script/program itself at the top couple lines (I havent made a dedicated config file yet)
     "
     exit
     ;;
+  -e)
+    exhibition_bool=1
+    shift;;
 esac
+
+variable_declaration
+# get_window_size
+user_options
+find_valid_image
+
 
 # echo -e "Term Height: $term_height"
 # echo -e "Term Width: $term_width"
@@ -309,3 +319,4 @@ echo_reduction=$((${#info_stuff[@]}/2))
 echo_amount=$((echo_amount-echo_reduction))
 
 for i in $(seq 0 $echo_amount); do echo; done
+
