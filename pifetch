@@ -183,24 +183,18 @@ get_window_size() {
     term_width="${term_width:-0}"
 }
 
-
-variable_declaration
-# get_window_size
-user_options
-
-# declare -i big_image
-
-while true; do
+find_valid_image() {
   bad_image=0
   image_file=$(find $image_dir -type f | shuf -n 1)
-  if [[ $1 != "" ]]; then
-    image_file=$1
+  if test -f "$selected_image"; then
+    # echo -e "Piped image: $selected_image"
+    image_file="$selected_image"
   fi
   for IMAGE in ${naughty_images[@]}; do
     if [[ "$image_dir/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
   done
   if [[ $bad_image == 1 ]]; then
-    continue
+    find_valid_image
   fi
   image_file_extension="${image_file##*.}"
   #echo $image_file
@@ -210,9 +204,7 @@ while true; do
         image_width=$(file $image_file | awk '{print $9}')
         if [[ $image_height -gt 400 ]]; then
           echo "Image is too big for terminal"
-          big_image=1
-        else
-          break
+          find_valid_image
         fi
         ;;
       png)
@@ -222,7 +214,6 @@ while true; do
         # if [[ $image_height -lt 400 ]]; then
         #   big_image=1
         # fi
-        break
         ;;
       jpeg | jpg)
         image_dimensions=$(file $image_file | awk '{print $18}')
@@ -235,29 +226,46 @@ while true; do
         # if [[ $image_height -lt 400 ]]; then
         #   big_image=1
         # fi
-        break
         ;;
+      *)
+        find_valid_image
   esac
-done
+}
 
-if [[ $1 != "" ]]; then
-  echo -e "Piped image: $1"
-  image_file="$1"
+if [ -f "$1" ]; then
+  selected_image="$1"
 fi
+
+variable_declaration
+# get_window_size
+user_options
+find_valid_image
+
+# I need to add more of these later on
+case "$1" in 
+  --help)
+    echo "
+    Pifetch options:
+
+    --help                      Displays this help option
+    image.[png|gif|jpg|jpeg]    Will use pifetch for the specific image that you pick (usage: \"pifetch /path/to/image\")
+    "
+    exit
+    ;;
+esac
+
 # echo -e "Term Height: $term_height"
 # echo -e "Term Width: $term_width"
 
 # echo $image_file_extension
 
-
-echo -e "Height: $image_height"
-echo -e "Width: $image_width"
+# echo -e "Height: $image_height"
+# echo -e "Width: $image_width"
 
 if [[ $image_height -gt 400 ]] && [[ $image_file_extension == "gif" ]]; then
-  echo "Image size is too big for terminal"
+  echo "Gif size is too big for terminal"
   exit;
 fi
-
 
 info_echo_amount=$((image_width/9))
 if [[ $info_echo_amount -gt 50 ]]; then
