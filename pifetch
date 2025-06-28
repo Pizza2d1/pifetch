@@ -12,22 +12,26 @@ user_options() {
   # Neofetch Display #
   ####################
 
-  # Include the info that you want to add, make sure to add quotation marks around the value to make sure the value gets properly added the the array
+  # Include the info that you want to add, make sure to add quotation marks around the value to make sure the value gets properly added the the array-
+  # - Most of these variables are decided in the variable_declaration function or in your ~/.bashrc file
+  #
   # Options:
-  #     OS    cpu     ram_num        ram            simplified_ram    resolution    DE 
+  #     OS    cpu     ram_num        ram            simplified_ram    resolution    DE      battery_percentage
   #     free_storage  used_storage   total_storage  free_storage   percent_storage  system_runtime
+
   info_stuff=(
     "$user_hostname" ""
     "" "$spacer" #Spacer is in the right area so that it becomes white instead of cyan
-    "OS: " "$OS"
+    "OS: "  "$OS"
     "CPU: " "$cpu"
-    "Ram: " "$simplified_ram$ram"
-    "DE: " "$DE"
-    "Terminal: " "$TERMINAL"
-    "Resolution: " "$resolution"
-    "Storage Space: " "$(($used_storage / 1000000))/$(($total_storage / 1000000)) GB$percent_storage"
+    "Ram: " "$simplified_ram ($ram)"
+    "DE: "  "$DE"
+    "Terminal: "       "$TERMINAL"
+    "Resolution: "     "$resolution"
+    "Storage Space: "  "$(($used_storage / 1000000))/$(($total_storage / 1000000)) GB ($percent_storage)"
     "Usable Storage: " "$(($free_storage / 1000000)) GB"
-    "Uptime: " "$system_runtime"
+    "Uptime: "         "$system_runtime"
+    "Battery: "        "$battery_percentage"
   )
 
   #####################
@@ -36,15 +40,21 @@ user_options() {
   # Choose what images in your ~/Pictures/neofetch_images directory to not use (it won't try files that aren't images anyways)
 
   naughty_images=(
-    # E.G.: (will prevent ~/Pictures/neofetch_images/picture_of_your_mom.png from being selected)
+    # E.G.: (will prevent ~/Pictures/pifetch_images/picture_of_your_mom.png from being selected)
     "picture_of_your_mom.png"
   )
+
+  # Dont worry about this
   if [[ $user == "pizza2d1" ]]; then
+    info_stuff+=(
+      "Server Status: " "$(sed -n '1p' /home/pizza2d1/Documents/laptop_server_status.txt)"
+      )
     naughty_images+=(
       "new_bunny.gif"
       "output.gif"
-      "catgirl.gif"
+      "catgirl.gif" # I got problems
       )
+  fi
 }
 
 # Where to add font formatting, system information variables, and icons (if you want)
@@ -72,7 +82,7 @@ variable_declaration() {
 
     OS=$(grep -E "^PRETTY_NAME=" /etc/os-release | sed "s/PRETTY_NAME=//")
     cpu=$(lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g' | sed -r 's/ with Radeon Graphics//')
-    ram=$(echo -e " ($(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //'))")
+    ram=$(echo -e "$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //')")
     ram_num=$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //' | sed -r 's/ kB//')
     simplified_ram=$(echo ""$(($ram_num / 1000000))" GB")
     resolution=$(xrandr | sed 's/^.*current //' | sed 's/, maximum 32767 x 32767//' | head -n 1)
@@ -81,9 +91,10 @@ variable_declaration() {
     total_storage=$(df / | grep -h 2 | awk '{print $2}')
     free_storage=$(($total_storage - $used_storage))
     perc=$(echo "scale=3; $used_storage / $total_storage * 100" | bc) #temp var
-    percent_storage=$(echo " (${perc:0:4}%)")
+    percent_storage=$(echo "${perc:0:4}%")
     DE=$(echo $XDG_CURRENT_DESKTOP | sed "s/^.*://")
     system_runtime=$(uptime -p | sed 's/up //')
+    battery_percentage=$(echo $(upower -i $(upower -e | grep 'BAT') | grep percentage | sed 's/percentage://')) # The echo is to remove spaces
 
     # ICONS (You will need to have icons-in-terminal installed: https://github.com/sebastiencs/icons-in-terminal)
     source ~/.local/share/icons-in-terminal/icons_bash.sh
@@ -106,7 +117,8 @@ variable_declaration() {
     ICON_github=$(echo -e $fa_github)
 }
 
-# I realize now that this isn't very necessary, because I thought that the terminal size would matter, but that's only if you care enough to format the image in real time, which I don't
+# I realize now that this isn't very necessary, because I thought that the terminal size would matter, but that's only if you care enough to format the image if you have a super small terminal, -
+# - But I don't care for those "people"
 get_window_size() {
     if [[ "$image_backend" == "tycat" ]]; then
         printf '%b' '\e}qs\000'
@@ -191,7 +203,7 @@ while true; do
     continue
   fi
   image_file_extension="${image_file##*.}"
-  echo $image_file
+  #echo $image_file
   case "$image_file_extension" in
       gif)
         image_height=$(file $image_file | awk '{print $7}')
@@ -274,12 +286,13 @@ fi
 
 clear
 kitty +kitten icat --align left --place "50x50@-100x-100" $image_file
+info_stuff+=("Image Loaded: " "$(basename $image_file)")
 for info in $(seq 0 2 ${#info_stuff[@]}); do
   for i in $(seq 0 $info_echo_amount); do
     printf "%s " ""
   done
   sleep 0.02
-  # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this program
+  # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this prognam
   echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
 done
 
