@@ -33,6 +33,7 @@ user_options() {
     "Usable Storage: " "$(($free_storage / 1000000)) GB"
     "Uptime: "         "$system_runtime"
     "Battery: "        "$battery_percentage"
+    "Image Loaded: "   "$(basename $image_file)"
   )
 
   #####################
@@ -262,6 +263,7 @@ variable_declaration
 # get_window_size
 user_options
 find_valid_image
+user_options
 
 
 # echo -e "Term Height: $term_height"
@@ -304,7 +306,6 @@ fi
 
 clear
 kitty +kitten icat --align left --place "50x50@-100x-100" $image_file
-info_stuff+=("Image Loaded: " "$(basename $image_file)")
 for info in $(seq 0 2 ${#info_stuff[@]}); do
   for i in $(seq 0 $info_echo_amount); do
     printf "%s " ""
