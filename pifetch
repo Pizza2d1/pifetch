@@ -3,23 +3,67 @@
 user=$(whoami)
 exhibition_bool=0
 
-# Customize your fetch here!
-user_options() {
-
-  # Default location of pifetch images
-  image_dir="/home/$user/Pictures/pifetch_images"
-
-  ####################
-  # Neofetch Display #
-  ####################
-
-  # Include the info that you want to add, make sure to add quotation marks around the value to make sure the value gets properly added the the array-
-  # - Most of these variables are decided in the variable_declaration function or in your ~/.bashrc file
-  #
-  # Options:
-  #     OS    cpu     ram_num        ram            simplified_ram    resolution    DE      battery_percentage
-  #     free_storage  used_storage   total_storage  free_storage   percent_storage  system_runtime
-
+if [ -f /home/$user/HomeProgramming/pifetch/config.conf ]; then
+  source /home/$user/HomeProgramming/pifetch/config.conf
+else
+  # Make default config
+  Fontreset='\033[0m'
+  Bold='\033[1m'
+  
+  Red='\033[0;31m'
+  Lred='\033[0m\e[38;5;196m'
+  export Lgreen='\033[0m\e[92m'
+  Orange='\033[0m\e[38;5;208m'
+  Yellow='\033[0m\e[38;5;226m'
+  Lblue='\033[0m\e[34m'
+  Purple='\033[0m\e[38;5;92m'
+  Pink='\033[0m\e[38;5;198m'
+  Cyan='\033[0m\e[36m'
+  
+  DefFont=$Cyan$Bold
+  
+  # Computer Information
+  user_hostname=$(echo $DefFont$(whoami)$Fontreset@$DefFont$(hostnamectl hostname)$Fontreset)
+  clean_user_hostname=$(echo -e "$(whoami)@$(hostnamectl hostname)")
+  spacer=$(for i in $(seq 0 $((${#clean_user_hostname}-1))); do printf '%s' "-"; done)
+  
+  OS=$(grep -E "^PRETTY_NAME=" /etc/os-release | sed "s/PRETTY_NAME=//")
+  cpu=$(lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g' | sed -r 's/ with Radeon Graphics//')
+  ram=$(echo -e "$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //')")
+  ram_num=$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //' | sed -r 's/ kB//')
+  simplified_ram=$(echo ""$(($ram_num / 1000000))" GB")
+  resolution=$(xrandr | sed 's/^.*current //' | sed 's/, maximum 32767 x 32767//' | head -n 1)
+  storage_dev=$(df -h | sort -k 2 -r -h | head -1 | awk '{print $1}')
+  used_storage=$(df / | grep -h 2 | awk '{print $3}')
+  total_storage=$(df / | grep -h 2 | awk '{print $2}')
+  free_storage=$(($total_storage - $used_storage))
+  perc=$(echo "scale=3; $used_storage / $total_storage * 100" | bc) #temp var
+  percent_storage=$(echo "${perc:0:4}%")
+  DE=$(echo $XDG_CURRENT_DESKTOP | sed "s/^.*://")
+  system_runtime=$(uptime -p | sed 's/up //')
+  battery_percentage=$(echo $(upower -i $(upower -e | grep 'BAT') | grep percentage | sed 's/percentage://')) # The echo is to remove spaces
+  
+  # ICONS (You will need to have icons-in-terminal installed: https://github.com/sebastiencs/icons-in-terminal)
+  source ~/.local/share/icons-in-terminal/icons_bash.sh
+  ICON_bluetooth=$(echo -e $md_bluetooth_searching)
+  ICON_ubuntu=$(echo -e $linux_ubuntu)
+  ICON_webpage=$(echo -e $linea_basic_webpage)
+  ICON_settings=$(echo -e $dev_aptana)
+  ICON_clock=$(echo -e $weather_time_3)
+  ICON_terminal=$(echo -e $file_terminal)
+  ICON_clock2=$(echo -e $md_watch_later)
+  ICON_monitor=$(echo -e $md_personal_video)
+  ICON_graph=$(echo -e $md_broken_image)
+  ICON_chip=$(echo -e $md_developer_board)
+  ICON_folderplus=$(echo -e $md_create_new_folder)
+  ICON_folder=$(echo -e $md_folder)
+  ICON_folderempty=$(echo -e $md_folder_open)
+  ICON_chip2=$(echo -e $fa_microchip)
+  ICON_server=$(echo -e $fa_server)
+  ICON_gradcap=$(echo -e $fa_graduation_cap)
+  ICON_github=$(echo -e $fa_github)
+  
+  image_dir="/home/$user/Pictures"
   info_stuff=(
     "$user_hostname" ""
     "" "$spacer" #Spacer is in the right area so that it becomes white instead of cyan
@@ -33,91 +77,8 @@ user_options() {
     "Usable Storage: " "$(($free_storage / 1000000)) GB"
     "Uptime: "         "$system_runtime"
     "Battery: "        "$battery_percentage"
-    "Image Loaded: "   "$(basename $image_file)"
   )
-
-  #####################
-  # Image restriction #
-  #####################
-  # Choose what images in your ~/Pictures/neofetch_images directory to not use (it won't try files that aren't images anyways)
-
-  naughty_images=(
-    # E.G.: (will prevent ~/Pictures/pifetch_images/picture_of_your_mom.png from being selected)
-    "picture_of_your_mom.png"
-  )
-
-  # Dont worry about this
-  if [[ $user == "pizza2d1" ]]; then
-    info_stuff+=(
-      "Server Status: " "$(sed -n '1p' /home/pizza2d1/Documents/laptop_server_status.txt)"
-      )
-    naughty_images+=(
-      "new_bunny.gif"
-      "output.gif"
-      "catgirl.gif" # I got problems
-      )
-  fi
-}
-
-# Where to add font formatting, system information variables, and icons (if you want)
-variable_declaration() {
-    # Font customization
-    Fontreset='\033[0m'
-    Bold='\033[1m'
-
-    Red='\033[0;31m'
-    Lred='\033[0m\e[38;5;196m'
-    Lgreen='\033[0m\e[92m'
-    Orange='\033[0m\e[38;5;208m'
-    Yellow='\033[0m\e[38;5;226m'
-    Lblue='\033[0m\e[34m'
-    Purple='\033[0m\e[38;5;92m'
-    Pink='\033[0m\e[38;5;198m'
-    Cyan='\033[0m\e[36m'
-
-    DefFont=$Cyan$Bold
-
-    # Computer Information
-    user_hostname=$(echo $DefFont$(whoami)$Fontreset@$DefFont$(hostnamectl hostname)$Fontreset)
-    clean_user_hostname=$(echo -e "$(whoami)@$(hostnamectl hostname)")
-    spacer=$(for i in $(seq 0 $((${#clean_user_hostname}-1))); do printf '%s' "-"; done)
-
-    OS=$(grep -E "^PRETTY_NAME=" /etc/os-release | sed "s/PRETTY_NAME=//")
-    cpu=$(lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g' | sed -r 's/ with Radeon Graphics//')
-    ram=$(echo -e "$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //')")
-    ram_num=$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //' | sed -r 's/ kB//')
-    simplified_ram=$(echo ""$(($ram_num / 1000000))" GB")
-    resolution=$(xrandr | sed 's/^.*current //' | sed 's/, maximum 32767 x 32767//' | head -n 1)
-    storage_dev=$(df -h | sort -k 2 -r -h | head -1 | awk '{print $1}')
-    used_storage=$(df / | grep -h 2 | awk '{print $3}')
-    total_storage=$(df / | grep -h 2 | awk '{print $2}')
-    free_storage=$(($total_storage - $used_storage))
-    perc=$(echo "scale=3; $used_storage / $total_storage * 100" | bc) #temp var
-    percent_storage=$(echo "${perc:0:4}%")
-    DE=$(echo $XDG_CURRENT_DESKTOP | sed "s/^.*://")
-    system_runtime=$(uptime -p | sed 's/up //')
-    battery_percentage=$(echo $(upower -i $(upower -e | grep 'BAT') | grep percentage | sed 's/percentage://')) # The echo is to remove spaces
-
-    # ICONS (You will need to have icons-in-terminal installed: https://github.com/sebastiencs/icons-in-terminal)
-    source ~/.local/share/icons-in-terminal/icons_bash.sh
-    ICON_bluetooth=$(echo -e $md_bluetooth_searching)
-    ICON_ubuntu=$(echo -e $linux_ubuntu)
-    ICON_webpage=$(echo -e $linea_basic_webpage)
-    ICON_settings=$(echo -e $dev_aptana)
-    ICON_clock=$(echo -e $weather_time_3)
-    ICON_terminal=$(echo -e $file_terminal)
-    ICON_clock2=$(echo -e $md_watch_later)
-    ICON_monitor=$(echo -e $md_personal_video)
-    ICON_graph=$(echo -e $md_broken_image)
-    ICON_chip=$(echo -e $md_developer_board)
-    ICON_folderplus=$(echo -e $md_create_new_folder)
-    ICON_folder=$(echo -e $md_folder)
-    ICON_folderempty=$(echo -e $md_folder_open)
-    ICON_chip2=$(echo -e $fa_microchip)
-    ICON_server=$(echo -e $fa_server)
-    ICON_gradcap=$(echo -e $fa_graduation_cap)
-    ICON_github=$(echo -e $fa_github)
-}
+fi
 
 # I realize now that this isn't very necessary, because I thought that the terminal size would matter, but that's only if you care enough to format the image if you have a super small terminal, -
 # - But I don't care for those "people"
@@ -197,11 +158,11 @@ find_valid_image() {
       if [[ "$image_dir/$IMAGE" == "$image_file" ]]; then bad_image=1; fi
     done
   fi
-  if [[ $bad_image == 1 ]]; then
+  if [[ $bad_image == 1 ]] || [[ ! -f $image_file ]]; then
     find_valid_image
   fi
   image_file_extension="${image_file##*.}"
-  #echo $image_file
+  echo $image_file
   case "$image_file_extension" in
       gif)
         image_height=$(file $image_file | awk '{print $7}')
@@ -226,6 +187,10 @@ find_valid_image() {
         fi
         image_height=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $1}')
         image_width=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $2}')
+        echo "jpg height: $image_height"
+        echo "jpg width: $image_width"
+        echo "jpg dim: $image_dimensions"
+        echo "file info: $(file $image_file)" 
         image_width=${image_width:0:-1}
         # if [[ $image_height -lt 400 ]]; then
         #   big_image=1
@@ -238,6 +203,7 @@ find_valid_image() {
 
 if [ -f "$1" ]; then
   selected_image="$1"
+  exhibition_bool=1
 fi
 
 # I need to add more of these later on
@@ -259,20 +225,17 @@ case "$1" in
     shift;;
 esac
 
-variable_declaration
-# get_window_size
-user_options
 find_valid_image
-user_options
 
-
-# echo -e "Term Height: $term_height"
-# echo -e "Term Width: $term_width"
-
-# echo $image_file_extension
-
-# echo -e "Height: $image_height"
-# echo -e "Width: $image_width"
+re='^[0-9]+$'
+if [[ ! $image_width =~ $re ]]; then
+  image_width=$(identify -format "%w" "$image_file")
+  echo "Supw"
+fi
+if [[ ! $image_height =~ $re ]]; then
+  image_height=$(identify -format "%h" "$image_file")
+  echo "Suph"
+fi
 
 if [[ $image_height -gt 400 ]] && [[ $image_file_extension == "gif" ]]; then
   echo "Gif size is too big for terminal"
@@ -296,7 +259,8 @@ fi
 echo -e "echo amount: $echo_amount"
 echo -e "info echo amount: $info_echo_amount"
 
-
+echo $image_height
+echo $image_width
 
 # echo $image_file
 # echo $1
@@ -304,13 +268,13 @@ if [[ $image_file_extension == "gif" ]]; then
   echo "loading gif"
 fi
 
-clear
-kitty +kitten icat --align left --place "50x50@-100x-100" $image_file
+#clear
+kitty +kitten icat --align left --place "50x50@-100x-100" "$image_file"
 for info in $(seq 0 2 ${#info_stuff[@]}); do
   for i in $(seq 0 $info_echo_amount); do
     printf "%s " ""
   done
-  sleep 0.02
+  sleep 0.01
   # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this prognam
   echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
 done

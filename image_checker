@@ -1,0 +1,84 @@
+#!/bin/bash
+
+user=$(whoami)
+
+if [ -f /home/$user/HomeProgramming/pifetch/config.conf ]; then
+  source /home/$user/HomeProgramming/pifetch/config.conf
+fi
+
+if [ ! $1 == "" ]; then
+  if [ -d $1 ]; then
+    selected_images=$(ls $1)
+  elif [ -f $1 ]; then
+    selected_images+=($1)
+  fi
+fi
+
+case $1 in 
+  -c)
+    selected_images=$(ls $image_dir)
+    ;;
+  *)
+    echo "
+    Will check your image files and tell you if they are compatible with this fetcher
+    Available commands:
+
+    image_checker --help          Will show this, but this will be shown anyways if a parameter isn't given
+    image_checker -c              Will check all files in your config's selected image directory
+    image_checker /path/to/file   Will check to see if a specific file will work
+    image_checker /path/to/dir    Will check all files in a selected directory
+    "
+esac
+
+for image_file in $selected_images; do
+  image_file_extension="${image_file##*.}"
+  re='^[0-9]+$'
+  #echo $image_file
+  case "$image_file_extension" in
+      gif)
+        image_height=$(file $image_dir/$image_file | awk '{print $7}')
+        image_width=$(file $image_dir/$image_file | awk '{print $9}')
+        if [[ $image_height -gt 400 ]]; then
+          echo -e "$Red$image_file:$Fontreset Gif image is too big for terminal, recommend adding to blacklist, or running it through the provided gif_resizer$Fontreset"
+        else
+          echo -e "$Lgreen$image_file$Fontreset"
+        fi
+        ;;
+      png)
+        image_height=$(file $image_dir/$image_file | awk '{print $7}')
+        image_width=$(file $image_dir/$image_file | awk '{print $5}')
+        image_height=${image_height:0:-1}
+        if [[ ! $image_width =~ $re ]] || [[ ! $image_height =~ $re ]]; then
+          image_width=$(identify -format "%w" "$image_file")
+          image_height=$(identify -format "%h" "$image_file")
+        fi
+        if [[ $image_height -gt $image_width ]]; then
+          echo -e "$Yellow$image_file:$Fontreset Potential resizing issues$Fontreset"
+        else
+          echo -e "$Lgreen$image_file$Fontreset"
+        fi
+        ;;
+      jpeg | jpg)
+        image_dimensions=$(file $image_dir/$image_file | awk '{print $18}')
+        if [[ $image_dimensions == "" ]]; then
+          image_dimensions=$(file $image_dir/$image_file | awk '{print $15}')
+        fi
+        image_height=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $1}')
+        image_width=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $2}')
+        if [[ $image_width =~ "x" ]]; then
+          image_width=${image_width:0:-1}
+        fi
+        if [[ ! $image_width =~ $re ]] || [[ ! $image_height =~ $re ]]; then
+          image_width=$(identify -format "%w" "$image_dir/$image_file" >/dev/null 2>&1)
+          image_height=$(identify -format "%h" "$image_dir/$image_file" >/dev/null 2>&1) 
+        fi
+        if [[ $image_height -gt $image_width ]]; then
+          echo -e "$Yellow$image_file:$Fontreset Potential resizing issues$Fontreset"
+        else
+          echo -e "$Lgreen$image_file$Fontreset"
+        fi
+        ;;
+      *)
+        echo -e "$Red$image_file:$Fontreset This file type is not currently supported$Fontreset"
+  esac  
+done
