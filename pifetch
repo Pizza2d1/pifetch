@@ -4,11 +4,20 @@ user=$(whoami)
 exhibition_bool=0
 force_sup=0
 
-if [ -f config.conf ]; then
-  config_file="config.conf"
+
+if [ ! -d /home/$user/.config/pifetch ]; then
+  if [ ! -d /home/$user/.config ]; then
+    mkdir /home/$user/.config
+  fi
+  mkdir /home/$user/.config/pifetch
+fi
+if [ -f /home/$user/.config/pifetch/config.conf ]; then
+  config_file="/home/$user/.config/pifetch/config.conf"
 else
-  cp conf/basic_config.conf config.conf
-  config_file="config.conf"
+  if [ ! "$1" == "-config" ]; then
+    echo -e "It is recommended that you make a config file first for this, you can do that by running:\n\n   ./pifetch -config\n\nIn the git repo directory"
+    exit
+  fi
 fi
 if [ ! -d /home/$user/Pictures/pifetch_images ]; then
   if [ ! -d /home/$user/Pictures ]; then
@@ -17,8 +26,9 @@ if [ ! -d /home/$user/Pictures/pifetch_images ]; then
   mkdir /home/$user/Pictures/pifetch_images
 fi
 
-
-source $config_file #We set this as a variable so that we can source it again later
+if [ ! "$1" == "-config" ]; then
+  source $config_file #We set this as a variable so that we can source it again later
+fi
 
 # Gets the current size of the terminal
 get_window_size() {
@@ -164,8 +174,8 @@ case "$1" in
     exhibition_bool=1
     shift;;
   -config) # Creates the config file that the user can create out of the base config
-    cp conf/basic_config.conf config.conf
-    shift;;
+    cp conf/basic_config.conf /home/$user/.config/pifetch/config.conf
+    exit;;
   -sup)
     # Testing images for supplemental image spacing
     force_sup=1
@@ -258,14 +268,15 @@ for info in $(seq 0 2 ${#info_stuff[@]}); do
   echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
 done
 
-echo_amount=$((13*echo_ratio/2)) # It would be 25, but I want another space between the image and the user input in the terminal
-tmp_echo_amount=$((13*echo_ratio/2))
+echo_amount=$((echo_ratio)) # It would be 25, but I want another space between the image and the user input in the terminal
+tmp_echo_amount=$((echo_ratio))
 image_offset=$(echo "scale=3; $image_height / $image_width" | bc)
 echo_amount=$(echo "scale=0; ($image_offset * $echo_amount) / 1" | bc)
 
 #echo "pre-echo amount: $echo_amount"
 
-echo_reduction=${#info_stuff[@]}
+#echo_reduction=${#info_stuff[@]}
+echo_reduction=0
 echo_amount=$((echo_amount-echo_reduction))
 tmp_echo_amount=$((tmp_echo_amount-echo_reduction))
 
