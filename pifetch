@@ -80,8 +80,7 @@ else
   )
 fi
 
-# I realize now that this isn't very necessary, because I thought that the terminal size would matter, but that's only if you care enough to format the image if you have a super small terminal, -
-# - But I don't care for those "people"
+# Gets the current size of the terminal
 get_window_size() {
     if [[ "$image_backend" == "tycat" ]]; then
         printf '%b' '\e}qs\000'
@@ -162,13 +161,13 @@ find_valid_image() {
     find_valid_image
   fi
   image_file_extension="${image_file##*.}"
-  echo $image_file
+  # echo $image_file
   case "$image_file_extension" in
       gif)
         image_height=$(file $image_file | awk '{print $7}')
         image_width=$(file $image_file | awk '{print $9}')
         if [[ $image_height -gt 400 ]]; then
-          echo "Image is too big for terminal"
+          # echo "Image is too big for terminal"
           find_valid_image
         fi
         ;;
@@ -187,10 +186,10 @@ find_valid_image() {
         fi
         image_height=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $1}')
         image_width=$(echo "$image_dimensions" | sed 's/x/ /' | awk '{print $2}')
-        echo "jpg height: $image_height"
-        echo "jpg width: $image_width"
-        echo "jpg dim: $image_dimensions"
-        echo "file info: $(file $image_file)" 
+        # echo "jpg height: $image_height"
+        # echo "jpg width: $image_width"
+        # echo "jpg dim: $image_dimensions"
+        # echo "file info: $(file $image_file)" 
         image_width=${image_width:0:-1}
         # if [[ $image_height -lt 400 ]]; then
         #   big_image=1
@@ -213,14 +212,14 @@ case "$1" in
     Pifetch options:
 
     --help                      Displays this help option
-    -e                          Will remove the blacklist and include all images in the selected image directory
+    -e | --explicit             Will ignore the blacklist and include all images in the selected image directory
     image.[png|gif|jpg|jpeg]    Will use pifetch for the specific image that you pick (usage: \"pifetch /path/to/image\")
 
     If you would like to modify or change the configuration of this, modify your changes in the pifetch script/program itself at the top couple lines (I havent made a dedicated config file yet)
     "
     exit
     ;;
-  -e)
+  -e|--explicit)
     exhibition_bool=1
     shift;;
 esac
@@ -256,22 +255,51 @@ if [[ $image_height != $image_width ]]; then # If the image is very large, it ma
   echo_amount=$((echo_amount+1))
   # echo "Math: $echo_amount"
 fi
-echo -e "echo amount: $echo_amount"
-echo -e "info echo amount: $info_echo_amount"
 
-echo $image_height
-echo $image_width
+#echo -e "echo amount: $echo_amount"
+#echo -e "info echo amount: $info_echo_amount"
+
+echo "Height: $image_height"
+echo "Width: $image_width"
 
 # echo $image_file
 # echo $1
-if [[ $image_file_extension == "gif" ]]; then
+if [ "$image_file_extension" == "gif" ]; then
   echo "loading gif"
 fi
 
+get_window_size
+
+fetch_height=20
+fetch_width=20
+
+fetch_height_ratio=$((term_height/400))
+fetch_width_ratio=$((term_width/400))
+
+echo "H term $term_height"
+echo "W term $term_width"
+
+if [ $fetch_height_ratio == 0 ]; then
+  fetch_height_ratio=1
+fi
+if [ $fetch_width_ratio == 0 ]; then
+  fetch_width_ratio=1
+fi
+echo "H ratio $fetch_height_ratio"
+echo "W ratio $fetch_width_ratio"
+
+if [ $fetch_height_ratio -gt $fetch_width_ratio ]; then
+  echo_ratio=$fetch_height_ratio
+else
+  echo_ratio=$fetch_width_ratio
+fi
+
 clear
-kitty +kitten icat --align left --place "50x50@-100x-100" "$image_file"
+#kitty +kitten icat --align left --scale-up --place "40x40@-100x-100" "$image_file"
+kitty +kitten icat --align left --scale-up --place "$((fetch_height*fetch_height_ratio))x$((fetch_width*fetch_width_ratio))@-100x-100" "$image_file"
 for info in $(seq 0 2 ${#info_stuff[@]}); do
-  for i in $(seq 0 $info_echo_amount); do
+  #for i in $(seq 0 39); do
+  for i in $(seq 0 $((echo_ratio*10+1))); do
     printf "%s " ""
   done
   sleep 0.01
@@ -279,9 +307,37 @@ for info in $(seq 0 2 ${#info_stuff[@]}); do
   echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
 done
 
-echo_reduction=$((${#info_stuff[@]}/2))
+echo_amount=29 # It would be 25, but I want another space between the image and the user input in the terminal
+tmp_echo_amount=29
+image_offset=$(echo "scale=2;  $image_height / $image_width" | bc)
+echo_amount=$(echo "scale=0; ($image_offset * $echo_amount) / 1" | bc)
 
+#echo "pre-echo amount: $echo_amount"
+
+echo_reduction=${#info_stuff[@]}
 echo_amount=$((echo_amount-echo_reduction))
+tmp_echo_amount=$((tmp_echo_amount-echo_reduction))
+
+#echo "echo amount: $echo_amount"
+#echo "tmpecho amount: $tmp_echo_amount"
 
 for i in $(seq 0 $echo_amount); do echo; done
+
+
+#kitty +kitten icat --align left --place "50x50@-100x-100" "$image_file"
+#for info in $(seq 0 2 ${#info_stuff[@]}); do
+#  for i in $(seq 0 $info_echo_amount); do
+#    printf "%s " ""
+#  done
+#  sleep 0.01
+#  # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this prognam
+#  echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
+#done
+#
+#echo_reduction=$((${#info_stuff[@]}/2))
+#
+#echo_amount=$((echo_amount-echo_reduction))
+#
+#for i in $(seq 0 $echo_amount); do echo; done
+
 
