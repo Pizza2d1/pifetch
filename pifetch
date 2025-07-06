@@ -2,83 +2,23 @@
 
 user=$(whoami)
 exhibition_bool=0
+force_sup=0
 
-if [ -f /home/$user/HomeProgramming/pifetch/config.conf ]; then
-  source /home/$user/HomeProgramming/pifetch/config.conf
+if [ -f config.conf ]; then
+  config_file="config.conf"
 else
-  # Make default config
-  Fontreset='\033[0m'
-  Bold='\033[1m'
-  
-  Red='\033[0;31m'
-  Lred='\033[0m\e[38;5;196m'
-  export Lgreen='\033[0m\e[92m'
-  Orange='\033[0m\e[38;5;208m'
-  Yellow='\033[0m\e[38;5;226m'
-  Lblue='\033[0m\e[34m'
-  Purple='\033[0m\e[38;5;92m'
-  Pink='\033[0m\e[38;5;198m'
-  Cyan='\033[0m\e[36m'
-  
-  DefFont=$Cyan$Bold
-  
-  # Computer Information
-  user_hostname=$(echo $DefFont$(whoami)$Fontreset@$DefFont$(hostnamectl hostname)$Fontreset)
-  clean_user_hostname=$(echo -e "$(whoami)@$(hostnamectl hostname)")
-  spacer=$(for i in $(seq 0 $((${#clean_user_hostname}-1))); do printf '%s' "-"; done)
-  
-  OS=$(grep -E "^PRETTY_NAME=" /etc/os-release | sed "s/PRETTY_NAME=//")
-  cpu=$(lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g' | sed -r 's/ with Radeon Graphics//')
-  ram=$(echo -e "$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //')")
-  ram_num=$(cat /proc/meminfo | grep "MemTotal" | sed -r 's/MemTotal:       //' | sed -r 's/ kB//')
-  simplified_ram=$(echo ""$(($ram_num / 1000000))" GB")
-  resolution=$(xrandr | sed 's/^.*current //' | sed 's/, maximum 32767 x 32767//' | head -n 1)
-  storage_dev=$(df -h | sort -k 2 -r -h | head -1 | awk '{print $1}')
-  used_storage=$(df / | grep -h 2 | awk '{print $3}')
-  total_storage=$(df / | grep -h 2 | awk '{print $2}')
-  free_storage=$(($total_storage - $used_storage))
-  perc=$(echo "scale=3; $used_storage / $total_storage * 100" | bc) #temp var
-  percent_storage=$(echo "${perc:0:4}%")
-  DE=$(echo $XDG_CURRENT_DESKTOP | sed "s/^.*://")
-  system_runtime=$(uptime -p | sed 's/up //')
-  battery_percentage=$(echo $(upower -i $(upower -e | grep 'BAT') | grep percentage | sed 's/percentage://')) # The echo is to remove spaces
-  
-  # ICONS (You will need to have icons-in-terminal installed: https://github.com/sebastiencs/icons-in-terminal)
-  source ~/.local/share/icons-in-terminal/icons_bash.sh
-  ICON_bluetooth=$(echo -e $md_bluetooth_searching)
-  ICON_ubuntu=$(echo -e $linux_ubuntu)
-  ICON_webpage=$(echo -e $linea_basic_webpage)
-  ICON_settings=$(echo -e $dev_aptana)
-  ICON_clock=$(echo -e $weather_time_3)
-  ICON_terminal=$(echo -e $file_terminal)
-  ICON_clock2=$(echo -e $md_watch_later)
-  ICON_monitor=$(echo -e $md_personal_video)
-  ICON_graph=$(echo -e $md_broken_image)
-  ICON_chip=$(echo -e $md_developer_board)
-  ICON_folderplus=$(echo -e $md_create_new_folder)
-  ICON_folder=$(echo -e $md_folder)
-  ICON_folderempty=$(echo -e $md_folder_open)
-  ICON_chip2=$(echo -e $fa_microchip)
-  ICON_server=$(echo -e $fa_server)
-  ICON_gradcap=$(echo -e $fa_graduation_cap)
-  ICON_github=$(echo -e $fa_github)
-  
-  image_dir="/home/$user/Pictures"
-  info_stuff=(
-    "$user_hostname" ""
-    "" "$spacer" #Spacer is in the right area so that it becomes white instead of cyan
-    "OS: "  "$OS"
-    "CPU: " "$cpu"
-    "Ram: " "$simplified_ram ($ram)"
-    "DE: "  "$DE"
-    "Terminal: "       "$TERMINAL"
-    "Resolution: "     "$resolution"
-    "Storage Space: "  "$(($used_storage / 1000000))/$(($total_storage / 1000000)) GB ($percent_storage)"
-    "Usable Storage: " "$(($free_storage / 1000000)) GB"
-    "Uptime: "         "$system_runtime"
-    "Battery: "        "$battery_percentage"
-  )
+  cp conf/basic_config.conf config.conf
+  config_file="config.conf"
 fi
+if [ ! -d /home/$user/Pictures/pifetch_images ]; then
+  if [ ! -d /home/$user/Pictures ]; then
+    mkdir /home/$user/Pictures
+  fi
+  mkdir /home/$user/Pictures/pifetch_images
+fi
+
+
+source $config_file #We set this as a variable so that we can source it again later
 
 # Gets the current size of the terminal
 get_window_size() {
@@ -213,6 +153,7 @@ case "$1" in
 
     --help                      Displays this help option
     -e | --explicit             Will ignore the blacklist and include all images in the selected image directory
+    -config                     Will reset your config file to the base configurations
     image.[png|gif|jpg|jpeg]    Will use pifetch for the specific image that you pick (usage: \"pifetch /path/to/image\")
 
     If you would like to modify or change the configuration of this, modify your changes in the pifetch script/program itself at the top couple lines (I havent made a dedicated config file yet)
@@ -222,16 +163,26 @@ case "$1" in
   -e|--explicit)
     exhibition_bool=1
     shift;;
+  -config) # Creates the config file that the user can create out of the base config
+    cp conf/basic_config.conf config.conf
+    shift;;
+  -sup)
+    # Testing images for supplemental image spacing
+    force_sup=1
+    selected_image=$(cat image_cache.log)
+    exhibition_bool=1
+
 esac
 
 find_valid_image
+echo "$image_file" > image_cache.log
 
 re='^[0-9]+$'
-if [[ ! $image_width =~ $re ]]; then
+if [[ ! $image_width =~ $re ]] || [[ $force_sup == 1 ]]; then
   image_width=$(identify -format "%w" "$image_file")
   echo "Supw"
 fi
-if [[ ! $image_height =~ $re ]]; then
+if [[ ! $image_height =~ $re ]] || [[ $force_sup == 1 ]]; then
   image_height=$(identify -format "%h" "$image_file")
   echo "Suph"
 fi
@@ -294,11 +245,11 @@ else
   echo_ratio=$fetch_width_ratio
 fi
 
+source $config_file # Allows for data about the image that was chosen to be included in the fetch
+
 clear
-#kitty +kitten icat --align left --scale-up --place "40x40@-100x-100" "$image_file"
 kitty +kitten icat --align left --scale-up --place "$((fetch_height*fetch_height_ratio))x$((fetch_width*fetch_width_ratio))@-100x-100" "$image_file"
 for info in $(seq 0 2 ${#info_stuff[@]}); do
-  #for i in $(seq 0 39); do
   for i in $(seq 0 $((echo_ratio*10+1))); do
     printf "%s " ""
   done
@@ -307,9 +258,9 @@ for info in $(seq 0 2 ${#info_stuff[@]}); do
   echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
 done
 
-echo_amount=29 # It would be 25, but I want another space between the image and the user input in the terminal
-tmp_echo_amount=29
-image_offset=$(echo "scale=2;  $image_height / $image_width" | bc)
+echo_amount=$((13*echo_ratio/2)) # It would be 25, but I want another space between the image and the user input in the terminal
+tmp_echo_amount=$((13*echo_ratio/2))
+image_offset=$(echo "scale=3; $image_height / $image_width" | bc)
 echo_amount=$(echo "scale=0; ($image_offset * $echo_amount) / 1" | bc)
 
 #echo "pre-echo amount: $echo_amount"
@@ -322,22 +273,4 @@ tmp_echo_amount=$((tmp_echo_amount-echo_reduction))
 #echo "tmpecho amount: $tmp_echo_amount"
 
 for i in $(seq 0 $echo_amount); do echo; done
-
-
-#kitty +kitten icat --align left --place "50x50@-100x-100" "$image_file"
-#for info in $(seq 0 2 ${#info_stuff[@]}); do
-#  for i in $(seq 0 $info_echo_amount); do
-#    printf "%s " ""
-#  done
-#  sleep 0.01
-#  # (DefFont) and (Fontreset) are used to color format the output, they can be replaced witht the other colors you find at the top of this prognam
-#  echo -e "  $DefFont${info_stuff[info]}$Fontreset${info_stuff[$((info+1))]}"
-#done
-#
-#echo_reduction=$((${#info_stuff[@]}/2))
-#
-#echo_amount=$((echo_amount-echo_reduction))
-#
-#for i in $(seq 0 $echo_amount); do echo; done
-
 
