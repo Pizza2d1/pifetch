@@ -201,6 +201,10 @@ if [[ ! $image_height =~ $re ]] || [[ $force_sup == 1 ]]; then
   echo "Suph"
 fi
 
+# Just do it
+image_height=$(identify -format "%h" "$image_file")
+image_width=$(identify -format "%w" "$image_file")
+
 if [[ $image_height -gt 400 ]] && [[ $image_file_extension == "gif" ]]; then
   echo "Gif size is too big for terminal"
   exit;
@@ -215,7 +219,7 @@ if [[ $echo_amount -gt 20 ]]; then
   echo_amount=20
 fi
 if [[ $image_height != $image_width ]]; then # If the image is very large, it may be necessary to calculate the scale of the image to find out how much to echo the image from the user input
-  scaley=$(echo "scale=4; $image_height / $image_width" | bc)
+  scaley=$(echo "scale=5; $image_height / $image_width" | bc)
   echo_amount=$(echo "scale=0; $echo_amount * $scaley / 1" | bc)
   echo_amount=$((echo_amount+1))
   # echo "Math: $echo_amount"
@@ -264,7 +268,7 @@ source $config_file # Allows for data about the image that was chosen to be incl
 clear
 kitty +kitten icat --align left --scale-up --place "$((fetch_height*fetch_height_ratio))x$((fetch_width*fetch_width_ratio))@-100x-100" "$image_file"
 for info in $(seq 0 2 ${#info_stuff[@]}); do
-  for i in $(seq 0 $((echo_ratio*10+1))); do
+  for i in $(seq 0 $((fetch_width_ratio*10+1))); do
     printf "%s " ""
   done
   sleep 0.01
