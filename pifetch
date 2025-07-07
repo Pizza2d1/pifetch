@@ -154,6 +154,9 @@ if [ -f "$1" ]; then
   selected_image="$1"
   exhibition_bool=1
 fi
+if [ -d "$1" ]; then
+  image_dir="$1"
+fi
 
 # I need to add more of these later on
 case "$1" in 
@@ -161,10 +164,11 @@ case "$1" in
     echo "
     Pifetch options:
 
-    --help                      Displays this help option
+    -h | --help                 Displays this help option
     -e | --explicit             Will ignore the blacklist and include all images in the selected image directory
     -config                     Will reset your config file to the base configurations
     image.[png|gif|jpg|jpeg]    Will use pifetch for the specific image that you pick (usage: \"pifetch /path/to/image\")
+    /path/to/dir                Will use images from the directory that you chose (usage: \"pifetch /path/to/dir\")
 
     If you would like to modify or change the configuration of this, modify your changes in the pifetch script/program itself at the top couple lines (I havent made a dedicated config file yet)
     "
