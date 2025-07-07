@@ -97,6 +97,10 @@ get_window_size() {
 
 find_valid_image() {
   bad_image=0
+  if [ -z $( ls -A "/home/pizza2d1/Pictures/testing" ) ]; then
+    echo -e "\n\tYou must add images to your pifetch images directory, located at ~/Pictures/pifetch_images\n"
+    exit
+  fi
   image_file=$(find $image_dir -type f | shuf -n 1)
   if test -f "$selected_image"; then
     # echo -e "Piped image: $selected_image"
