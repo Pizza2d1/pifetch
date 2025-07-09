@@ -97,10 +97,6 @@ get_window_size() {
 
 find_valid_image() {
   bad_image=0
-  if [ -z $( ls -A "$image_dir" ) ]; then
-    echo -e "\n\tYou must add images to your pifetch images directory, located at ~/Pictures/pifetch_images\n"
-    exit
-  fi
   image_file=$(find $image_dir -type f | shuf -n 1)
   if test -f "$selected_image"; then
     # echo -e "Piped image: $selected_image"
@@ -191,6 +187,8 @@ case "$1" in
     exhibition_bool=1
 
 esac
+
+find "$image_dir" -mindepth 1 -maxdepth 1 | read && echo || bash $(echo -e "\n\tYou must add images to your pifetch images directory, located at ~/Pictures/pifetch_images\n" && exit)
 
 find_valid_image
 echo "$image_file" > image_cache.log
